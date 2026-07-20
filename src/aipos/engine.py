@@ -10,10 +10,11 @@ class WorkflowError(ValueError):
 
 
 def validate_workflow(tasks: Iterable[TaskDefinition]) -> dict[str, TaskDefinition]:
-    task_map = {task.id: task for task in tasks}
+    task_list = list(tasks)
+    task_map = {task.id: task for task in task_list}
     if not task_map:
         raise WorkflowError("Workflow must contain at least one task")
-    if len(task_map) != len(list(tasks)):
+    if len(task_map) != len(task_list):
         raise WorkflowError("Task IDs must be unique")
 
     for task in task_map.values():
@@ -41,8 +42,7 @@ def validate_workflow(tasks: Iterable[TaskDefinition]) -> dict[str, TaskDefiniti
 
 
 def runnable_tasks(tasks: Iterable[TaskDefinition], state: ProjectState) -> list[TaskDefinition]:
-    task_list = list(tasks)
-    task_map = validate_workflow(task_list)
+    task_map = validate_workflow(tasks)
     runnable: list[TaskDefinition] = []
 
     for task in task_map.values():
@@ -54,7 +54,7 @@ def runnable_tasks(tasks: Iterable[TaskDefinition], state: ProjectState) -> list
 
 
 def mark_completed(task_id: str, tasks: Iterable[TaskDefinition], state: ProjectState) -> None:
-    task_map = validate_workflow(list(tasks))
+    task_map = validate_workflow(tasks)
     if task_id not in task_map:
         raise WorkflowError(f"Unknown task: {task_id}")
     task = task_map[task_id]
