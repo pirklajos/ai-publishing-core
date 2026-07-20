@@ -4,15 +4,17 @@ import argparse
 from pathlib import Path
 
 from .engine import mark_completed, runnable_tasks
-from .io import load_state, load_workflow, save_state
+from .io import load_agent_registry, load_state, load_workflow, save_state
 
 DEFAULT_WORKFLOW = "examples/book-project.yaml"
+DEFAULT_AGENTS = "examples/agents.yaml"
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="aipos")
     parser.add_argument("--state", default=".aipos-state.json")
     parser.add_argument("--workflow", default=DEFAULT_WORKFLOW)
+    parser.add_argument("--agents", default=DEFAULT_AGENTS)
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     plan = subparsers.add_parser("plan", help="List tasks that are ready to run")
@@ -20,16 +22,33 @@ def build_parser() -> argparse.ArgumentParser:
 
     complete = subparsers.add_parser("complete", help="Mark a task as completed")
     complete.add_argument("args", metavar="ARG", nargs="+", help="TASK_ID or WORKFLOW TASK_ID")
+
+    agents = subparsers.add_parser("agents", help="Inspect and validate the agent registry")
+    agents_subparsers = agents.add_subparsers(dest="agents_command", required=True)
+    agents_subparsers.add_parser("list", help="List registered agents")
+    agents_subparsers.add_parser("validate", help="Validate the agent registry")
     return parser
 
 
 def main() -> None:
     args = build_parser().parse_args()
-    state_path = Path(args.state)
-    state = load_state(state_path)
+
+    if args.command == "agents":
+        registry = load_agent_registry(args.agents)
+        if args.agents_command == "list":
+            for agent in registry.list_agents():
+                capabilities = ", ".join(capability.name for capability in agent.capabilities)
+                print(f"{agent.id}: {agent.name} - {capabilities}")
+            return
+        if args.agents_command == "validate":
+            print(f"Agent registry valid: {len(registry.agents)} agents")
+            return
+
+    registry = load_agent_registry(args.agents)
+    state = load_state(Path(args.state))
 
     if args.command == "plan":
-        ready = runnable_tasks(load_workflow(args.workflow), state)
+        ready = runnable_tasks(load_workflow(args.workflow, registry), state, registry)
         if not ready:
             print("No runnable tasks.")
             return
@@ -40,8 +59,8 @@ def main() -> None:
 
     if args.command == "complete":
         workflow_path, task_id = resolve_complete_args(args.args, args.workflow)
-        mark_completed(task_id, load_workflow(workflow_path), state)
-        save_state(state_path, state)
+        mark_completed(task_id, load_workflow(workflow_path, registry), state, registry)
+        save_state(Path(args.state), state)
         print(f"Completed: {task_id}")
 
 

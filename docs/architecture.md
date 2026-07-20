@@ -2,16 +2,32 @@
 
 ## MVP boundary
 
-The first version is deliberately deterministic. It plans work, validates dependencies, and persists state. It does not yet invoke model providers or publish externally.
+The first versions are deliberately deterministic. AIPOS plans work, validates dependencies and agent contracts, and persists state. It does not yet invoke model providers or publish externally.
 
 ## Components
 
-1. **Workflow definition** — YAML task graph with dependencies, outputs, and approval gates.
-2. **Agent registry** — planned catalog of agent capabilities and input/output contracts.
-3. **Planner** — identifies tasks whose dependencies are complete.
-4. **State store** — human-readable JSON project state.
-5. **Runner adapters** — future integrations for Codex, local commands, APIs, and human tasks.
-6. **Artifact validator** — future checks that required files exist and pass quality rules before completion.
+1. **Workflow definition** - YAML task graph with dependencies, outputs, and approval gates.
+2. **Agent registry** - YAML catalog of provider-agnostic agent definitions, capabilities, artifact contracts, and execution constraints.
+3. **Planner** - identifies tasks whose dependencies are complete.
+4. **State store** - human-readable JSON project state.
+5. **Runner adapters** - future integrations for Codex, local commands, APIs, and human tasks.
+6. **Artifact validator** - future checks that required files exist and pass quality rules before completion.
+
+## Agent registry
+
+Agent definitions describe what an agent can do, not how a provider should run it. The core registry includes:
+
+- stable agent IDs such as `research.market`
+- human-readable names and descriptions
+- capabilities as plain provider-neutral strings
+- input and output artifact contracts with explicit project-relative paths
+- execution constraints such as retry limits, timeouts, and approval requirements
+
+Workflow loading validates that every task references a registered agent. Each task output must match at least one output contract declared by that task's agent. Contracts may use exact paths such as `research/market.md`, single-segment glob patterns such as `manuscript/chapters/*.md`, or recursive glob patterns such as `manuscript/**/*.md`.
+
+Agent-level approval constraints are enforced during workflow validation. A workflow task cannot set `approval_required: false` when its registered agent declares `requires_approval: true`.
+
+Registry loading rejects duplicate IDs, missing required fields, invalid artifact paths, empty capabilities, invalid retry limits, and invalid timeouts.
 
 ## Safety and control
 

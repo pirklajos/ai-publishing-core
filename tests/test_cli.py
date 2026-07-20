@@ -22,6 +22,20 @@ def test_plan_prints_runnable_tasks(monkeypatch, capsys):
     assert "research.audience: research.audience - Define the target audience" in output
 
 
+def test_agents_list_prints_registered_agents(monkeypatch, capsys):
+    run_cli(monkeypatch, "agents", "list")
+
+    output = capsys.readouterr().out
+    assert "research.market: Market Research - market-research, competitor-analysis, positioning" in output
+    assert "qa.editorial: Editorial QA - editorial-review, consistency-checking, claim-review" in output
+
+
+def test_agents_validate_prints_summary(monkeypatch, capsys):
+    run_cli(monkeypatch, "agents", "validate")
+
+    assert capsys.readouterr().out == "Agent registry valid: 5 agents\n"
+
+
 def test_complete_task_id_uses_default_workflow(monkeypatch, tmp_path, capsys):
     state_path = tmp_path / "state.json"
 

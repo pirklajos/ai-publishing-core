@@ -2,14 +2,18 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
-from .models import ProjectState, TaskDefinition, TaskStatus
+from .models import AgentRegistry, ProjectState, TaskDefinition, TaskStatus
+from .registry import RegistryError, validate_task_agents
+from .validation import validate_artifact_path
 
 
 class WorkflowError(ValueError):
     pass
 
 
-def validate_workflow(tasks: Iterable[TaskDefinition]) -> dict[str, TaskDefinition]:
+def validate_workflow(
+    tasks: Iterable[TaskDefinition], registry: AgentRegistry | None = None
+) -> dict[str, TaskDefinition]:
     task_list = list(tasks)
     task_map = {task.id: task for task in task_list}
     if not task_map:
@@ -21,6 +25,17 @@ def validate_workflow(tasks: Iterable[TaskDefinition]) -> dict[str, TaskDefiniti
         missing = [dep for dep in task.depends_on if dep not in task_map]
         if missing:
             raise WorkflowError(f"Task {task.id} has missing dependencies: {missing}")
+        for output_path in task.outputs:
+            try:
+                validate_artifact_path(output_path, f"output path for task {task.id}")
+            except ValueError as exc:
+                raise WorkflowError(str(exc)) from exc
+
+    if registry is not None:
+        try:
+            validate_task_agents(task_list, registry)
+        except RegistryError as exc:
+            raise WorkflowError(str(exc)) from exc
 
     visiting: set[str] = set()
     visited: set[str] = set()
@@ -41,8 +56,10 @@ def validate_workflow(tasks: Iterable[TaskDefinition]) -> dict[str, TaskDefiniti
     return task_map
 
 
-def runnable_tasks(tasks: Iterable[TaskDefinition], state: ProjectState) -> list[TaskDefinition]:
-    task_map = validate_workflow(tasks)
+def runnable_tasks(
+    tasks: Iterable[TaskDefinition], state: ProjectState, registry: AgentRegistry | None = None
+) -> list[TaskDefinition]:
+    task_map = validate_workflow(tasks, registry)
     runnable: list[TaskDefinition] = []
 
     for task in task_map.values():
@@ -53,8 +70,13 @@ def runnable_tasks(tasks: Iterable[TaskDefinition], state: ProjectState) -> list
     return runnable
 
 
-def mark_completed(task_id: str, tasks: Iterable[TaskDefinition], state: ProjectState) -> None:
-    task_map = validate_workflow(tasks)
+def mark_completed(
+    task_id: str,
+    tasks: Iterable[TaskDefinition],
+    state: ProjectState,
+    registry: AgentRegistry | None = None,
+) -> None:
+    task_map = validate_workflow(tasks, registry)
     if task_id not in task_map:
         raise WorkflowError(f"Unknown task: {task_id}")
     task = task_map[task_id]
