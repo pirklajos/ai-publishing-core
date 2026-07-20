@@ -15,5 +15,8 @@ dev = ["pytest>=8.0"]
 [project.scripts]
 aipos = "aipos.cli:main"
 
+[tool.hatch.build.targets.wheel]
+packages = ["src/aipos"]
+
 [tool.pytest.ini_options]
 pythonpath = ["src"]
