@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ai-publishing-core"
+version = "0.1.0"
+description = "Provider-agnostic orchestration core for AI-assisted publishing workflows"
+requires-python = ">=3.11"
+dependencies = ["PyYAML>=6.0"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+aipos = "aipos.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/aipos"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
