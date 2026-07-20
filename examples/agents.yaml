@@ -1,0 +1,84 @@
+agents:
+  - id: research.market
+    name: Market Research
+    description: Researches market positioning, competing offers, and category expectations.
+    capabilities:
+      - market-research
+      - competitor-analysis
+      - positioning
+    inputs: []
+    outputs:
+      - path: research/market.md
+        description: Market landscape, competing offers, and positioning notes.
+    constraints:
+      max_retries: 1
+      timeout_minutes: 60
+
+  - id: research.audience
+    name: Audience Research
+    description: Defines the target audience, pains, objections, desired outcomes, and buyer context.
+    capabilities:
+      - audience-research
+      - persona-definition
+      - objection-mapping
+    inputs: []
+    outputs:
+      - path: context/audience.md
+        description: Target audience profile, pains, objections, and outcomes.
+    constraints:
+      max_retries: 1
+      timeout_minutes: 60
+
+  - id: editorial.outline
+    name: Editorial Outline
+    description: Turns approved research into a structured manuscript outline.
+    capabilities:
+      - outlining
+      - editorial-structure
+      - content-planning
+    inputs:
+      - path: research/market.md
+        description: Market research to inform positioning and scope.
+      - path: context/audience.md
+        description: Audience research to inform chapter promises and examples.
+    outputs:
+      - path: manuscript/outline.md
+        description: Approved manuscript outline and chapter plan.
+    constraints:
+      requires_approval: true
+      max_retries: 1
+      timeout_minutes: 45
+
+  - id: writing.chapter
+    name: Chapter Writer
+    description: Drafts manuscript chapters from an approved outline and project context.
+    capabilities:
+      - chapter-drafting
+      - instructional-writing
+      - manuscript-development
+    inputs:
+      - path: manuscript/outline.md
+        description: Approved outline that defines the chapter structure.
+    outputs:
+      - path: manuscript/chapters/*.md
+        description: Draft chapter manuscript files.
+    constraints:
+      max_retries: 2
+      timeout_minutes: 90
+
+  - id: qa.editorial
+    name: Editorial QA
+    description: Reviews chapters for usefulness, consistency, unsupported claims, and repetition.
+    capabilities:
+      - editorial-review
+      - consistency-checking
+      - claim-review
+    inputs:
+      - path: manuscript/chapters/*.md
+        description: Draft chapter manuscript files to review.
+    outputs:
+      - path: qa/reports/*.md
+        description: Editorial QA reports with required fixes and recommendations.
+    constraints:
+      max_retries: 1
+      timeout_minutes: 45
