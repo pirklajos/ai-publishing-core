@@ -1,0 +1,34 @@
+name: ai-side-hustle-hu
+language: hu
+product: ebook
+quality: premium
+
+tasks:
+  - id: research.market
+    agent: research.market
+    description: Research the Hungarian market and competing offers.
+    outputs: [research/market.md]
+
+  - id: research.audience
+    agent: research.audience
+    description: Define the target audience, pains, objections, and desired outcomes.
+    outputs: [context/audience.md]
+
+  - id: editorial.outline
+    agent: editorial.outline
+    description: Create the detailed book outline from approved research.
+    depends_on: [research.market, research.audience]
+    outputs: [manuscript/outline.md]
+    approval_required: true
+
+  - id: writing.chapter-01
+    agent: writing.chapter
+    description: Draft chapter 1 according to the approved outline and style guide.
+    depends_on: [editorial.outline]
+    outputs: [manuscript/01-introduction.md]
+
+  - id: qa.chapter-01
+    agent: qa.editorial
+    description: Review chapter 1 for usefulness, consistency, unsupported claims, and repetition.
+    depends_on: [writing.chapter-01]
+    outputs: [qa/01-introduction.md]
