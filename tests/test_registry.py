@@ -151,3 +151,82 @@ tasks:
 
     with pytest.raises(WorkflowError, match="project-relative"):
         load_workflow(workflow_path, registry)
+
+
+def test_workflow_outputs_match_exact_and_glob_agent_contracts():
+    registry = load_agent_registry(ROOT / "examples/agents.yaml")
+
+    workflow = load_workflow(ROOT / "examples/book-project.yaml", registry)
+
+    assert [task.id for task in workflow] == [
+        "research.market",
+        "research.audience",
+        "editorial.outline",
+        "writing.chapter-01",
+        "qa.chapter-01",
+    ]
+
+
+def test_workflow_outputs_match_recursive_glob_contract(tmp_path):
+    registry_path = write_registry(
+        tmp_path,
+        """
+agents:
+  - id: writing.chapter
+    name: Chapter Writer
+    description: Drafts chapter files.
+    capabilities: [chapter-drafting]
+    outputs:
+      - path: manuscript/**/*.md
+        description: Draft manuscript files.
+""",
+    )
+    workflow_path = write_workflow(
+        tmp_path,
+        """
+tasks:
+  - id: writing.chapter-01
+    agent: writing.chapter
+    description: Draft chapter 1.
+    outputs: [manuscript/chapters/01-introduction.md]
+""",
+    )
+
+    registry = load_agent_registry(registry_path)
+
+    assert load_workflow(workflow_path, registry)[0].id == "writing.chapter-01"
+
+
+def test_workflow_rejects_outputs_outside_agent_contract(tmp_path):
+    registry = load_agent_registry(ROOT / "examples/agents.yaml")
+    workflow_path = write_workflow(
+        tmp_path,
+        """
+tasks:
+  - id: writing.chapter-01
+    agent: writing.chapter
+    description: Draft chapter 1.
+    outputs: [manuscript/01-introduction.md]
+""",
+    )
+
+    with pytest.raises(WorkflowError, match="output contracts"):
+        load_workflow(workflow_path, registry)
+
+
+def test_workflow_cannot_bypass_agent_approval_requirement(tmp_path):
+    registry = load_agent_registry(ROOT / "examples/agents.yaml")
+    workflow_path = write_workflow(
+        tmp_path,
+        """
+tasks:
+  - id: editorial.outline
+    agent: editorial.outline
+    description: Create the detailed book outline.
+    outputs: [manuscript/outline.md]
+    approval_required: false
+""",
+    )
+
+    with pytest.raises(WorkflowError, match="must require approval"):
+        load_workflow(workflow_path, registry)

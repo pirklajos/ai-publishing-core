@@ -12,7 +12,7 @@ from .models import (
     ExecutionConstraints,
     TaskDefinition,
 )
-from .validation import require_non_empty_string, validate_artifact_path
+from .validation import artifact_path_matches_contract, require_non_empty_string, validate_artifact_path
 
 
 class RegistryError(ValueError):
@@ -36,6 +36,32 @@ def validate_task_agents(tasks: Iterable[TaskDefinition], registry: AgentRegistr
     unknown = sorted({task.agent for task in tasks if not registry.has_agent(task.agent)})
     if unknown:
         raise RegistryError(f"Workflow references unknown agents: {unknown}")
+
+    for task in tasks:
+        agent = registry.get(task.agent)
+        _validate_task_outputs(task, agent)
+        _validate_task_approval(task, agent)
+
+
+def _validate_task_outputs(task: TaskDefinition, agent: AgentDefinition) -> None:
+    unmatched = [
+        output_path
+        for output_path in task.outputs
+        if not any(artifact_path_matches_contract(output_path, contract.path) for contract in agent.outputs)
+    ]
+    if unmatched:
+        contracts = [contract.path for contract in agent.outputs]
+        raise RegistryError(
+            f"Task {task.id} outputs do not match agent {agent.id} output contracts: "
+            f"{unmatched}; expected one of {contracts}"
+        )
+
+
+def _validate_task_approval(task: TaskDefinition, agent: AgentDefinition) -> None:
+    if agent.constraints.requires_approval and not task.approval_required:
+        raise RegistryError(
+            f"Task {task.id} must require approval because agent {agent.id} requires approval"
+        )
 
 
 def agent_from_mapping(item: Mapping[str, object]) -> AgentDefinition:

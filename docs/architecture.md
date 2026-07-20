@@ -23,7 +23,11 @@ Agent definitions describe what an agent can do, not how a provider should run i
 - input and output artifact contracts with explicit project-relative paths
 - execution constraints such as retry limits, timeouts, and approval requirements
 
-Workflow loading validates that every task references a registered agent. Registry loading rejects duplicate IDs, missing required fields, invalid artifact paths, empty capabilities, invalid retry limits, and invalid timeouts.
+Workflow loading validates that every task references a registered agent. Each task output must match at least one output contract declared by that task's agent. Contracts may use exact paths such as `research/market.md`, single-segment glob patterns such as `manuscript/chapters/*.md`, or recursive glob patterns such as `manuscript/**/*.md`.
+
+Agent-level approval constraints are enforced during workflow validation. A workflow task cannot set `approval_required: false` when its registered agent declares `requires_approval: true`.
+
+Registry loading rejects duplicate IDs, missing required fields, invalid artifact paths, empty capabilities, invalid retry limits, and invalid timeouts.
 
 ## Safety and control
 
